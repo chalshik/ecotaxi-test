@@ -12,6 +12,12 @@ class ReportOperations
 public:
     ReportOperations();
 
+
+    QVariantList static getDriverChargesReport(QDate fromDate, QDate toDate);
+    QVariantList static getAllDriverChargesReport(QDate fromDate, QDate toDate);
+
+
+
     // general reports
     QVariantList static getCarsReport(QDate fromDate, QDate toDate);
     QVariantList static getAllCarsReport(QDate fromDate, QDate toDate);
@@ -47,6 +53,11 @@ public:
     QVariantList static getAllFinesByDriversReport(QDate fromDate, QDate toDate);
 
     // reports by item
+    QVariantList static getDriverChargesByCarReport( QDate fromDate, QDate toDate);
+    QVariantList static getAllDriverChargesByCarReport(QDate fromDate, QDate toDate);
+
+
+
     QVariantList static getCarReport(int carId, QDate fromDate, QDate toDate);
     QVariantList static getAllCarReport(int carId, QDate fromDate, QDate toDate);
 
