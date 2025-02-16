@@ -158,7 +158,65 @@ QString PDFmanager::getAppDir()
 {
   return QCoreApplication::applicationDirPath();
 }
+void PDFmanager::createPDF2( QString html,  QString title)
+{
+    // Устанавливаем курсор ожидания
+    QApplication::setOverrideCursor(Qt::WaitCursor);
 
+    // Получаем текущее время для имени файла
+    QDateTime time = QDateTime::currentDateTime();
+    QString appDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QDir folder(appDir + "/отчеты");
+
+    // Создаем папку "отчеты", если она не существует
+    if (!folder.exists()) {
+        folder.mkdir(appDir + "/отчеты");
+    }
+
+    // Формируем имя файла
+    QString fileName = title + " " + time.toString("dd.MM.yyyy HH-mm-ss") + ".pdf";
+    fileName.replace(" ", "_");
+
+    // Полный путь к файлу
+    QString filePath = appDir + "/отчеты/" + fileName;
+
+    // Настройка принтера для создания PDF
+    QPrinter printer(QPrinter::PrinterResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setPageSize(QPageSize::A4);
+    printer.setOutputFileName(filePath);
+
+    qDebug() << "PDF будет сохранен в:" << printer.outputFileName();
+
+    // Создаем документ и добавляем HTML
+    QTextDocument doc;
+
+    // Добавляем мета-тег для кодировки
+    QString fullHtml = "<meta charset='UTF-8'>" + html;
+
+    // Устанавливаем HTML в документ
+    doc.setHtml(fullHtml);
+    doc.setPageSize(printer.pageRect(QPrinter::Point).size());
+
+    // Печатаем документ в PDF
+    doc.print(&printer);
+
+    // Копируем путь к файлу в буфер обмена
+    QMimeData *mimeData = new QMimeData();
+    mimeData->setUrls({QUrl::fromLocalFile(filePath)});
+
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setMimeData(mimeData);
+
+    // Восстанавливаем курсор
+    QApplication::restoreOverrideCursor();
+
+    // Показываем сообщение об успешном создании PDF
+    QMessageBox popup;
+    popup.setTextFormat(Qt::MarkdownText);
+    popup.setText("Отчет сохранен в папке 'отчеты' на рабочем столе и скопирован в буфер обмена.");
+    popup.exec();
+}
 QString PDFmanager::getDesktopDir()
 {
     return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -166,52 +224,54 @@ QString PDFmanager::getDesktopDir()
 
 void PDFmanager::createPDF(QString html, QString title)
 {
-  QApplication::setOverrideCursor(Qt::WaitCursor);
+    QApplication::setOverrideCursor(Qt::WaitCursor);
 
-  QDateTime time = QDateTime::currentDateTime();
-  QString appDir = getDesktopDir();
-  QDir folder(appDir + "/отчеты");
-  if (!folder.exists())
-  {
-    folder.mkdir(appDir + "/отчеты");
-  }
+    QDateTime time = QDateTime::currentDateTime();
+    QString appDir = getDesktopDir();
+    QDir folder(appDir + "/отчеты");
+    if (!folder.exists())
+    {
+        folder.mkdir(appDir + "/отчеты");
+    }
 
-  QString fileName = title + " " + time.toString("dd.MM.yyyy HH-mm-ss") + ".pdf";
-  fileName.replace(" ", "_");
+    QString fileName = title + " " + time.toString("dd.MM.yyyy HH-mm-ss") + ".pdf";
+    fileName.replace(" ", "_");
 
-  QString filePath = appDir + "/отчеты/" + fileName;
+    QString filePath = appDir + "/отчеты/" + fileName;
 
-  QPrinter printer(QPrinter::PrinterResolution);
-  printer.setOutputFormat(QPrinter::PdfFormat);
-  printer.setPageSize(QPageSize::A4);
-  printer.setOutputFileName(filePath);
+    QPrinter printer(QPrinter::PrinterResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setPageSize(QPageSize::A4);
+    printer.setOutputFileName(filePath);
 
-  qDebug() << printer.outputFileName();
+    qDebug() << printer.outputFileName();
 
-  QTextDocument doc;
+    QTextDocument doc;
 
-  doc.setDefaultStyleSheet(getStyleSheet());
-  doc.setHtml(getHeader(time) + html + getFooter(time));
-  doc.setPageSize(printer.pageRect(QPrinter::DevicePixel).size());
+    // Добавляем мета-тег для кодировки
+    html = "<meta charset='UTF-8'>" + html;
 
-  doc.print(&printer);
+    doc.setDefaultStyleSheet(getStyleSheet());
+    doc.setHtml(getHeader(time) + html + getFooter(time));
+    doc.setPageSize(printer.pageRect(QPrinter::Point).size()); // Используем Point для более точного контроля
+    qDebug() << html;
+    doc.print(&printer);
 
-  QMimeData *mimeData = new QMimeData();
-  mimeData->setUrls({QUrl::fromLocalFile(filePath)});
+    QMimeData *mimeData = new QMimeData();
+    mimeData->setUrls({QUrl::fromLocalFile(filePath)});
 
-  QClipboard *clipboard = QApplication::clipboard();
-  clipboard->setMimeData(mimeData);
-  
-  QApplication::restoreOverrideCursor();
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setMimeData(mimeData);
 
-  QMessageBox popup;
+    QApplication::restoreOverrideCursor();
 
-  popup.setTextFormat(Qt::MarkdownText);
-  popup.setText("Отчет сохранен в папке отчеты на рабочем столе и скопирован в буфер обмена");
+    QMessageBox popup;
 
-  popup.exec();
+    popup.setTextFormat(Qt::MarkdownText);
+    popup.setText("Отчет сохранен в папке отчеты на рабочем столе и скопирован в буфер обмена");
+
+    popup.exec();
 }
-
 QString PDFmanager::getHeader(QDateTime time)
 {
   return "<p>" + time.toString("dd.MM.yyyy HH:mm:ss") + "</p><h1 width=100% color='#007700'>ECO TAXI</h1>";

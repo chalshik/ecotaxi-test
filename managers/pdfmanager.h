@@ -22,8 +22,9 @@
 class PDFmanager
 {
 public:
+    void static createPDF(QString html, QString title);
     PDFmanager();
-
+    void static createPDF2(QString html, QString title);
     // general
     void static exportToPDF(QString title, QString dates, QList<QAbstractItemModel *> models, int start = 1);
 
@@ -40,7 +41,7 @@ private:
     QString static getHeader(QDateTime time);
     QString static getFooter(QDateTime time);
 
-    void static createPDF(QString html, QString title);
+
 };
 
 #endif // PDFMANAGER_H

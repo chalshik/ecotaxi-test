@@ -59,7 +59,171 @@ QVariantList ReportOperations::getCarsReport(QDate fromDate, QDate toDate)
     result = db.executeGet(query);
     return result;
 }
+QVariantList ReportOperations::getDailyReport(QDate fromDate, QDate toDate)
+{
+    toDate = toDate.addDays(1); // Добавляем один день, чтобы включить конечную дату
+    QVariantList result;
+    dbManager &db = dbManager::getInstance();
 
+    // Формируем даты в формате yyyy-MM-dd
+    QString fromDateStr = fromDate.toString("yyyy-MM-dd");
+    QString toDateStr = toDate.toString("yyyy-MM-dd");
+    // SQL-запрос для получения данных, сгруппированных по дням
+    QString query =
+        R"(
+        WITH daily_events AS (
+            SELECT
+                DATE(date) AS event_date,
+                carId,
+                SUM(CASE WHEN amount > 0 THEN COALESCE(amount, 0) ELSE 0 END) AS daily_income,
+                SUM(CASE WHEN amount > 0 THEN COALESCE(amount, 0) ELSE 0 END) * 0.1 AS daily_tax,
+                SUM(CASE WHEN amount < 0 THEN COALESCE(amount, 0) ELSE 0 END) AS daily_outcome,
+                SUM(COALESCE(amount, 0)) AS daily_totalAmount
+            FROM events
+            WHERE date BETWEEN ')" + fromDateStr + "' AND '" + toDateStr + R"('
+            GROUP BY DATE(date), carId
+        ),
+        daily_charges AS (
+            SELECT
+                DATE(date) AS charge_date,
+                carId,
+                SUM(COALESCE(kwh, 0)) AS daily_kwh
+            FROM charges
+            WHERE date BETWEEN ')" + fromDateStr + "' AND '" + toDateStr + R"('
+            GROUP BY DATE(date), carId
+        )
+        SELECT
+            de.event_date,
+            c.id AS carId,
+            c.sid AS carSid,
+            i.name AS investorName,
+            COALESCE(de.daily_income, 0) AS daily_income,
+            FLOOR(COALESCE(de.daily_tax, 0)) AS daily_tax,
+            COALESCE(dc.daily_kwh * 10, 0) AS daily_kwh,
+            COALESCE(de.daily_outcome, 0) AS daily_outcome,
+            FLOOR((de.daily_income * 0.9) - (COALESCE(dc.daily_kwh, 0) * 10) + de.daily_outcome) AS daily_profit,
+            COALESCE(c.percentage, 0) AS percentage,
+            CASE WHEN ((de.daily_income * 0.9) - (COALESCE(dc.daily_kwh, 0) * 10) + de.daily_outcome) >= 0 THEN
+                FLOOR(COALESCE(c.percentage, 0) * ((de.daily_income * 0.9) - (COALESCE(dc.daily_kwh, 0) * 10) + de.daily_outcome) / 100)
+            ELSE 0 END AS daily_ourIncome,
+            CASE WHEN ((de.daily_income * 0.9) - (COALESCE(dc.daily_kwh, 0) * 10) + de.daily_outcome) >= 0 THEN
+                FLOOR((100 - COALESCE(c.percentage, 0)) * ((de.daily_income * 0.9) - (COALESCE(dc.daily_kwh, 0) * 10) + de.daily_outcome) / 100)
+            ELSE FLOOR((de.daily_income * 0.9) - (COALESCE(dc.daily_kwh, 0) * 10) + de.daily_outcome)
+            END AS daily_investorsIncome
+        FROM daily_events de
+        LEFT JOIN daily_charges dc ON de.event_date = dc.charge_date AND de.carId = dc.carId
+        JOIN cars c ON de.carId = c.id
+        JOIN investors i ON i.id = c.investorId
+        ORDER BY de.event_date, c.id;
+        )";
+
+    result = db.executeGet(query); // Выполняем запрос и получаем результат
+    if (result.isEmpty()) {
+        qDebug() << "Ошибка: Запрос не вернул данных.";
+    }else{
+        qDebug()<<"est";
+        qDebug()<<result;
+    }
+    // Отладочный вывод для проверки данных
+    qDebug()<<"poluchennye daty";
+    qDebug()<<toDateStr;
+    qDebug()<<fromDateStr;
+
+    return result;
+}
+QString ReportOperations::convertDataToHTML(const QVariantList &data) {
+    QString html;
+
+    // Группируем данные по дням
+    QMap<QString, QVariantList> groupedByDate;
+    for (const QVariant &row : data) {
+        if (!row.canConvert<QVariantList>()) {
+            qDebug() << "Ошибка: неверный формат данных, ожидается QVariantList";
+            continue;
+        }
+
+        QVariantList rowList = row.toList();
+        if (rowList.size() < 12) { // Убедимся, что есть достаточно данных
+            qDebug() << "Ошибка: недостаточно данных в строке";
+            continue;
+        }
+
+        QString date = rowList[0].toDate().toString("yyyy-MM-dd"); // Дата из первого элемента
+        groupedByDate[date].append(row);
+    }
+
+    // Создаем HTML-таблицу для каждого дня
+    for (const QString &date : groupedByDate.keys()) {
+        // Добавляем стиль для разрыва страницы перед каждым днем (кроме первого)
+        if (!html.isEmpty()) {
+            html += "<div style='page-break-before: always;'></div>"; // Разрыв страницы
+        }
+
+        html += "<h3>" + date + "</h3>";
+        html += "<table border='1' cellpadding='5' cellspacing='0' style='margin: 0; width: 100%;'>";
+        html += "<tr>";
+
+        // Заголовки таблицы
+        html += "<th>Машина</th>";
+        html += "<th>Инвестор</th>";
+        html += "<th>Доход</th>";
+        html += "<th>Налог</th>";
+        html += "<th>КВт·ч</th>";
+        html += "<th>Расходы</th>";
+        html += "<th>Общий</th>";
+        html += "<th>Комиссия</th>";
+        html += "<th>Инвестору</th>";
+        html += "</tr>";
+
+        // Добавляем строки для каждого автомобиля
+        for (const QVariant &row : groupedByDate[date]) {
+            QVariantList rowList = row.toList();
+
+            QString carSid = rowList[2].toString();
+            QString investorName = rowList[3].toString();
+            QString dailyIncome = QString::number(rowList[4].toDouble(), 'f', 2);
+            QString dailyTax = QString::number(rowList[5].toDouble(), 'f', 2);
+            QString dailyKwh = QString::number(rowList[6].toDouble(), 'f', 2);
+            QString dailyOutcome = QString::number(rowList[7].toDouble(), 'f', 2);
+            QString dailyProfit = QString::number(rowList[8].toDouble(), 'f', 2);
+            QString dailyOurIncome = QString::number(rowList[10].toDouble(), 'f', 2);
+            QString dailyInvestorsIncome = QString::number(rowList[11].toDouble(), 'f', 2);
+
+            html += "<tr>";
+            html += "<td>" + carSid + "</td>";
+            html += "<td>" + investorName + "</td>";
+            html += "<td>" + dailyIncome + "</td>";
+            html += "<td>" + dailyTax + "</td>";
+            html += "<td>" + dailyKwh + "</td>";
+            html += "<td>" + dailyOutcome + "</td>";
+            html += "<td>" + dailyProfit + "</td>";
+            html += "<td>" + dailyOurIncome + "</td>";
+            html += "<td>" + dailyInvestorsIncome + "</td>";
+            html += "</tr>";
+        }
+
+        html += "</table><br>";
+    }
+
+    // Отладочный вывод
+    qDebug() << "Сгенерированный HTML:";
+    qDebug() << html;
+
+    return html;
+}
+void ReportOperations::createDailyPDF(QString title, QDate fromDate, QDate toDate)
+{
+    // Получаем данные из базы данных
+    QVariantList dailyData = getDailyReport(fromDate, toDate);
+
+    // Преобразуем данные в HTML
+    QString html = "<h2>" + title + "</h2>";
+    html += "<p>Отчет за период с " + fromDate.toString("dd.MM.yyyy") + " по " + toDate.toString("dd.MM.yyyy") + "</p><br>";
+    html += convertDataToHTML(dailyData);
+
+    // Создаем PDF
+    PDFmanager::createPDF2(html, title + " " + fromDate.toString("dd.MM.yyyy") + " - " + toDate.toString("dd.MM.yyyy"));
+}
 QVariantList ReportOperations::getAllCarsReport(QDate fromDate, QDate toDate)
 {
     toDate = toDate.addDays(1);

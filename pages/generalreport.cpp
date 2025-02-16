@@ -57,6 +57,7 @@ void GeneralReport::setHeader()
     {
     case Report::Cars:
         ui->Header->setText("ПО МАШИНАМ");
+        ui->SecondReportButton->setText("DAILY PDF");
         ui->ReportButton->setText("ОТЧЕТ ПО МАШИНЕ");
         break;
 
@@ -346,7 +347,7 @@ void GeneralReport::setTable()
 
             // Ensure numerical data is set correctly for sorting as integers
             QStandardItem *kwhItem = new QStandardItem();
-            kwhItem->setData(charges[3].toInt(), Qt::DisplayRole);  // KWH
+            kwhItem->setData(charges[2].toInt(), Qt::DisplayRole);  // KWH
             row.append(kwhItem);
 
 
@@ -488,7 +489,7 @@ void GeneralReport::setTable()
 
     ui->tableView->setColumnHidden(0, true);
 
-    if (this->mode == Report::Users || this->mode == Report::Users2)
+    if (this->mode == Report::Users || this->mode == Report::Users2||this->mode == Report::Cars)
     {
         ui->SecondReportButton->setDisabled(false);
     }
@@ -1027,6 +1028,10 @@ void GeneralReport::on_SecondReportButton_clicked()
 {
     switch (this->mode)
     {
+    case Report::Cars:
+        ReportOperations::createDailyPDF("Cars each",fromDate,toDate);
+        qDebug()<<"Peredannye";
+        break;
     case Report::Users:
         nav->openReport(5, 0, fromDate, toDate);
         break;
