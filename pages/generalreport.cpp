@@ -114,8 +114,8 @@ void GeneralReport::setHeader()
         break;
 
     case Report::DriverCharges:
-        ui->Header->setText("ПО ЗАРЯДКАМ ВОДИТЕЛЕЙ");
-        ui->ReportButton->setText("ОТЧЕТ ПО ЗАРЯДКАМ ВОДИТЕЛЕЙ");
+        ui->Header->setText("ПО ЗАРЯДКАМ ВОДИТЕЛЯ");
+        ui->ReportButton->setText("ОТЧЕТ ПО ЗАРЯДКАМ ВОДИТЕЛЬ");
         break;
     }
 }
@@ -966,7 +966,7 @@ void GeneralReport::on_ReportButton_clicked()
             nav->openReport(13, id, fromDate, toDate);
             break;
         case Report::DriverCharges:
-            nav->openReport(16, id, fromDate, toDate);
+            nav->openReport(17, id, fromDate, toDate);
             break;
         case Report::Users:
         case Report::Users2:
@@ -1006,7 +1006,7 @@ void GeneralReport::on_ReportButton_clicked()
             nav->openReport(13, 0, fromDate, toDate);
             break;
         case Report::DriverCharges:
-            nav->openReport(16, 0, fromDate, toDate);
+            nav->openReport(17, 0, fromDate, toDate);
             break;
         case Report::Users:
         case Report::Users2:

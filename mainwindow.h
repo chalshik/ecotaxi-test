@@ -63,6 +63,8 @@ private slots:
     void onChangeDate(QDate date);
 
 
+    void on_CarsBox_2_activated(int index);
+
 private:
     Ui::MainWindow *ui;
 

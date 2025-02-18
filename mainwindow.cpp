@@ -419,3 +419,4 @@ void MainWindow::on_addImagesButton_clicked()
     QStringList filesToUpload = QFileDialog::getOpenFileNames(this, tr("Выберите изображения"), "", tr("Изображения (*.png *.jpg *.jpeg *.ico)"));
     // std::vector<QString> uploadedUrls = uploader.uploadFiles("ecotaxi-bucket", filesToUpload);
 }
+

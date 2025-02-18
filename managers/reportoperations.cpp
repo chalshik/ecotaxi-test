@@ -715,6 +715,51 @@ QVariantList ReportOperations::getAllDriverChargesReport( QDate fromDate, QDate 
     }
     return result;
 }
+QVariantList ReportOperations::getDriverChargesReport(int driverId, QDate fromDate, QDate toDate)
+{
+    toDate = toDate.addDays(1);
+    QVariantList result;
+    dbManager &db = dbManager::getInstance();
+    QString query =
+        "SELECT\n"
+        "    drivers.id as driverId,\n"
+        "    drivers.name as driverName,\n"
+        "    SUM(charges.kwh) as kwhSum,\n"
+        "    SUM(charges.duration) as durationSum\n"
+        "FROM drivers\n"
+        "JOIN charges ON charges.driverId = drivers.id\n"
+        "WHERE charges.driverId = " + QString::number(driverId) + "\n"
+                                      "AND charges.date BETWEEN '" + fromDate.toString("yyyy-MM-dd") + "' AND '" + toDate.toString("yyyy-MM-dd") + "'\n"
+                                                                                        "GROUP BY drivers.id, drivers.name";
+
+    result = db.executeGet(query);
+    if (result.isEmpty()) {
+        qWarning() << "No data found for driverId:" << driverId;
+    }
+    return result;
+}
+QVariantList ReportOperations::getAllDriverChargesReport(int driverId, QDate fromDate, QDate toDate)
+{
+    toDate = toDate.addDays(1);
+    QVariantList result;
+    dbManager &db = dbManager::getInstance();
+    QString query =
+        "SELECT\n"
+        "    SUM(charges.kwh) as kwhSum,\n"
+        "    SUM(charges.duration) as durationSum\n"
+        "FROM charges\n"
+        "WHERE charges.driverId = " + QString::number(driverId) + "\n"
+                                      "AND charges.date BETWEEN '" + fromDate.toString("yyyy-MM-dd") + "' AND '" + toDate.toString("yyyy-MM-dd") + "'";
+
+    QVariantList data = db.executeGet(query);
+    if (!data.isEmpty())
+    {
+        result.append(data[0]);
+    } else {
+        qWarning() << "No data found for driverId:" << driverId;
+    }
+    return result;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 QVariantList ReportOperations::getUsersReport(QDate fromDate, QDate toDate)

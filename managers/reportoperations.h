@@ -85,6 +85,9 @@ public:
     QVariantList static getFinesByDriverReport(int driverId, QDate fromDate, QDate toDate);
     QVariantList static getAllFinesByDriverReport(int driverId, QDate fromDate, QDate toDate);
 
+    QVariantList static getDriverChargesReport(int driverId, QDate fromDate, QDate toDate);
+    QVariantList static getAllDriverChargesReport(int driverId, QDate fromDate, QDate toDate);
+
     // other reports
     QVariantList static getRepairsReport();
     QVariantList static getNotDoneRepairsReport();
