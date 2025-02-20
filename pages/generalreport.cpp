@@ -1029,8 +1029,7 @@ void GeneralReport::on_SecondReportButton_clicked()
     switch (this->mode)
     {
     case Report::Cars:
-        ReportOperations::createDailyPDF("Cars each",fromDate,toDate);
-        qDebug()<<"Peredannye";
+        ReportOperations::createDailyPDF("Daily PDF",fromDate,toDate);
         break;
     case Report::Users:
         nav->openReport(5, 0, fromDate, toDate);
